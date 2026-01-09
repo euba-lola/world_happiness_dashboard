@@ -201,7 +201,17 @@ def fig_finland_indicators(finland_data):
         "Generosity",
         "Perceptions of Corruption"
     ]
-
+    # Distinct colours for each indicator
+    colors = [
+        "#1f77b4",  # blue – happiness
+        "#2ca02c",  # green – GDP
+        "#9467bd",  # purple – social support
+        "#ff7f0e",  # orange – life expectancy
+        "#17becf",  # teal – freedom
+        "#8c564b",  # brown – generosity
+        "#d62728"   # red – corruption
+    ]
+    
     fig = plt.figure(figsize=(12, 10))
 
     for i, (col, title) in enumerate(zip(indicators, titles), start=1):
@@ -302,3 +312,4 @@ with tab4:
         file_name="world_happiness_filtered.csv",
         mime="text/csv"
     )
+
