@@ -104,15 +104,13 @@ def fig_corr_heatmap(df):
     corr = df[cols].corr(numeric_only=True)
 
     fig, ax = plt.subplots(figsize=(9, 7))
-    im = ax.imshow(corr.values)
+    ax.imshow(corr.values)
 
-    # Labels
     ax.set_xticks(np.arange(len(cols)))
     ax.set_yticks(np.arange(len(cols)))
     ax.set_xticklabels(cols, rotation=45, ha="right")
     ax.set_yticklabels(cols)
 
-    # Annotate cells
     for i in range(len(cols)):
         for j in range(len(cols)):
             ax.text(j, i, f"{corr.values[i, j]:.2f}", ha="center", va="center", fontsize=9)
@@ -181,6 +179,7 @@ def fig_gdp_vs_happy_outliers_annotated(df):
     return fig
 
 
+# ✅ Finland small-multiples chart (now with different colours)
 def fig_finland_indicators(finland_data):
     indicators = [
         "happiness_score",
@@ -201,7 +200,7 @@ def fig_finland_indicators(finland_data):
         "Generosity",
         "Perceptions of Corruption"
     ]
-    # Distinct colours for each indicator
+
     colors = [
         "#1f77b4",  # blue – happiness
         "#2ca02c",  # green – GDP
@@ -211,12 +210,18 @@ def fig_finland_indicators(finland_data):
         "#8c564b",  # brown – generosity
         "#d62728"   # red – corruption
     ]
-    
+
     fig = plt.figure(figsize=(12, 10))
 
-    for i, (col, title) in enumerate(zip(indicators, titles), start=1):
+    for i, (col, title, color) in enumerate(zip(indicators, titles, colors), start=1):
         plt.subplot(4, 2, i)
-        plt.plot(finland_data["year"], finland_data[col], marker="o")
+        plt.plot(
+            finland_data["year"],
+            finland_data[col],
+            marker="o",
+            linewidth=2,
+            color=color
+        )
         plt.title(title)
         plt.xlabel("Year")
         plt.ylabel("Value")
@@ -230,7 +235,6 @@ def fig_finland_indicators(finland_data):
     return fig
 
 
-# ✅ Missing function you referenced in your UI
 def fig_finland_happiness_gdp(finland_data):
     fig, ax = plt.subplots(figsize=(6, 5))
     ax.plot(finland_data["year"], finland_data["happiness_score"], marker="o", label="Happiness Score")
@@ -259,7 +263,6 @@ with st.sidebar:
     regions = sorted(df["region"].dropna().unique().tolist())
     region_choice = st.multiselect("Region(s)", regions, default=regions)
 
-# Filter safely
 df_f = df[df["year"].isin(year_choice)]
 df_f = df_f[df_f["region"].isin(region_choice)].copy()
 
@@ -312,4 +315,3 @@ with tab4:
         file_name="world_happiness_filtered.csv",
         mime="text/csv"
     )
-
