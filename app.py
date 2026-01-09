@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 st.set_page_config(page_title="World Happiness Dashboard (2015–2019)", layout="wide")
 
@@ -14,6 +13,17 @@ st.set_page_config(page_title="World Happiness Dashboard (2015–2019)", layout=
 def load_and_prepare_data():
     df = pd.read_csv("df_combined.csv")
     df["year"] = df["year"].astype(int)
+
+    # Make sure these columns exist (prevents crashes if a column is missing)
+    expected_cols = [
+        "country", "region", "year", "happiness_score", "gdp_per_capita",
+        "social_support", "healthy_life_expectancy", "freedom",
+        "generosity", "perceptions_of_corruption"
+    ]
+    missing = [c for c in expected_cols if c not in df.columns]
+    if missing:
+        raise ValueError(f"Missing columns in df_combined.csv: {missing}")
+
     return df
 
 
@@ -44,6 +54,7 @@ def fig_region_year_stacked(df):
           .groupby(["year", "region"])["country"]
           .nunique()
           .unstack()
+          .fillna(0)
     )
 
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -92,8 +103,20 @@ def fig_corr_heatmap(df):
     ]
     corr = df[cols].corr(numeric_only=True)
 
-    fig, ax = plt.subplots(figsize=(8, 6))
-    sns.heatmap(corr, annot=True, fmt=".2f", linewidths=0.5, ax=ax)
+    fig, ax = plt.subplots(figsize=(9, 7))
+    im = ax.imshow(corr.values)
+
+    # Labels
+    ax.set_xticks(np.arange(len(cols)))
+    ax.set_yticks(np.arange(len(cols)))
+    ax.set_xticklabels(cols, rotation=45, ha="right")
+    ax.set_yticklabels(cols)
+
+    # Annotate cells
+    for i in range(len(cols)):
+        for j in range(len(cols)):
+            ax.text(j, i, f"{corr.values[i, j]:.2f}", ha="center", va="center", fontsize=9)
+
     ax.set_title("Correlation Matrix of Happiness Score and Key Factors")
     fig.tight_layout()
     return fig
@@ -120,7 +143,6 @@ def fig_region_happiness_trends(df):
     return fig
 
 
-# ✅ Annotated outlier chart (your version, converted for Streamlit)
 def fig_gdp_vs_happy_outliers_annotated(df):
     gdp_median = df["gdp_per_capita"].median()
     happy_median = df["happiness_score"].median()
@@ -130,65 +152,25 @@ def fig_gdp_vs_happy_outliers_annotated(df):
 
     fig, ax = plt.subplots(figsize=(12, 7))
 
-    # Background points (faint)
-    ax.scatter(
-        df["gdp_per_capita"],
-        df["happiness_score"],
-        alpha=0.12,
-        s=20,
-        color="steelblue",
-        label="All Countries",
-        zorder=1
-    )
+    ax.scatter(df["gdp_per_capita"], df["happiness_score"], alpha=0.12, s=20, label="All Countries", zorder=1)
+    ax.scatter(high_gdp_low_happy["gdp_per_capita"], high_gdp_low_happy["happiness_score"],
+               s=70, edgecolor="black", label="High GDP, Low Happiness", zorder=3)
+    ax.scatter(low_gdp_high_happy["gdp_per_capita"], low_gdp_high_happy["happiness_score"],
+               s=70, edgecolor="black", label="Low GDP, High Happiness", zorder=3)
 
-    # Outlier groups (prominent)
-    ax.scatter(
-        high_gdp_low_happy["gdp_per_capita"],
-        high_gdp_low_happy["happiness_score"],
-        color="red",
-        s=70,
-        edgecolor="black",
-        label="High GDP, Low Happiness",
-        zorder=3
-    )
+    ax.axvline(gdp_median, linestyle="--", alpha=0.6)
+    ax.axhline(happy_median, linestyle="--", alpha=0.6)
 
-    ax.scatter(
-        low_gdp_high_happy["gdp_per_capita"],
-        low_gdp_high_happy["happiness_score"],
-        color="green",
-        s=70,
-        edgecolor="black",
-        label="Low GDP, High Happiness",
-        zorder=3
-    )
-
-    # Median reference lines
-    ax.axvline(gdp_median, color="grey", linestyle="--", alpha=0.6)
-    ax.axhline(happy_median, color="grey", linestyle="--", alpha=0.6)
-
-    # Annotate a few extreme examples
     annotate_high = high_gdp_low_happy.sort_values("gdp_per_capita", ascending=False).head(5)
     annotate_low = low_gdp_high_happy.sort_values("happiness_score", ascending=False).head(5)
 
     for _, row in annotate_high.iterrows():
-        ax.annotate(
-            row["country"],
-            (row["gdp_per_capita"], row["happiness_score"]),
-            textcoords="offset points",
-            xytext=(6, 6),
-            fontsize=9,
-            color="darkred"
-        )
+        ax.annotate(row["country"], (row["gdp_per_capita"], row["happiness_score"]),
+                    textcoords="offset points", xytext=(6, 6), fontsize=9)
 
     for _, row in annotate_low.iterrows():
-        ax.annotate(
-            row["country"],
-            (row["gdp_per_capita"], row["happiness_score"]),
-            textcoords="offset points",
-            xytext=(6, 6),
-            fontsize=9,
-            color="darkgreen"
-        )
+        ax.annotate(row["country"], (row["gdp_per_capita"], row["happiness_score"]),
+                    textcoords="offset points", xytext=(6, 6), fontsize=9)
 
     ax.set_xlabel("GDP per Capita")
     ax.set_ylabel("Happiness Score")
@@ -199,7 +181,6 @@ def fig_gdp_vs_happy_outliers_annotated(df):
     return fig
 
 
-# ✅ Finland small-multiples chart (your layout)
 def fig_finland_indicators(finland_data):
     indicators = [
         "happiness_score",
@@ -221,23 +202,35 @@ def fig_finland_indicators(finland_data):
         "Perceptions of Corruption"
     ]
 
-    colors = ["navy", "green", "purple", "orange", "teal", "brown", "red"]
-
     fig = plt.figure(figsize=(12, 10))
 
-    for i, (col, title, color) in enumerate(zip(indicators, titles, colors), start=1):
+    for i, (col, title) in enumerate(zip(indicators, titles), start=1):
         plt.subplot(4, 2, i)
-        plt.plot(finland_data["year"], finland_data[col], marker="o", color=color)
+        plt.plot(finland_data["year"], finland_data[col], marker="o")
         plt.title(title)
         plt.xlabel("Year")
         plt.ylabel("Value")
         plt.xticks([2015, 2016, 2017, 2018, 2019])
-        plt.grid(True)
+        plt.grid(True, alpha=0.3)
 
     plt.subplot(4, 2, 8)
     plt.axis("off")
 
     plt.tight_layout()
+    return fig
+
+
+# ✅ Missing function you referenced in your UI
+def fig_finland_happiness_gdp(finland_data):
+    fig, ax = plt.subplots(figsize=(6, 5))
+    ax.plot(finland_data["year"], finland_data["happiness_score"], marker="o", label="Happiness Score")
+    ax.plot(finland_data["year"], finland_data["gdp_per_capita"], marker="o", label="GDP per Capita")
+    ax.set_title("Finland: Happiness vs GDP (2015–2019)")
+    ax.set_xlabel("Year")
+    ax.set_xticks([2015, 2016, 2017, 2018, 2019])
+    ax.grid(True, alpha=0.3)
+    ax.legend()
+    fig.tight_layout()
     return fig
 
 
@@ -253,19 +246,18 @@ with st.sidebar:
     years = sorted(df["year"].unique().tolist())
     year_choice = st.multiselect("Year(s)", years, default=years)
 
-    regions = sorted([r for r in df["region"].dropna().unique().tolist()])
+    regions = sorted(df["region"].dropna().unique().tolist())
     region_choice = st.multiselect("Region(s)", regions, default=regions)
 
+# Filter safely
 df_f = df[df["year"].isin(year_choice)]
-df_f = df_f[df_f["region"].isin(region_choice)]
+df_f = df_f[df_f["region"].isin(region_choice)].copy()
 
-# Finland slice (uses filtered data so it updates with filters)
 finland_data = df_f[df_f["country"] == "Finland"].sort_values("year")
 
 st.caption(f"Showing {len(df_f):,} rows")
 
 tab1, tab2, tab3, tab4 = st.tabs(["Overview", "Trends", "Relationships", "Data"])
-
 
 with tab1:
     c1, c2 = st.columns(2)
@@ -273,7 +265,6 @@ with tab1:
         st.pyplot(fig_region_counts(df_f))
     with c2:
         st.pyplot(fig_region_year_stacked(df_f))
-
 
 with tab2:
     c1, c2 = st.columns(2)
@@ -288,22 +279,18 @@ with tab2:
     if finland_data.empty:
         st.warning("Finland data is not available for the selected filters (try including Western Europe and all years).")
     else:
-        # Show BOTH Finland visuals
         left, right = st.columns([2, 1])
         with left:
             st.pyplot(fig_finland_indicators(finland_data))
         with right:
             st.pyplot(fig_finland_happiness_gdp(finland_data))
 
-
 with tab3:
     c1, c2 = st.columns(2)
     with c1:
         st.pyplot(fig_corr_heatmap(df_f))
     with c2:
-        # ✅ Annotated outlier plot
         st.pyplot(fig_gdp_vs_happy_outliers_annotated(df_f))
-
 
 with tab4:
     st.subheader("Data preview (filtered)")
@@ -315,4 +302,3 @@ with tab4:
         file_name="world_happiness_filtered.csv",
         mime="text/csv"
     )
-
