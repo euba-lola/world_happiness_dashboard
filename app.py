@@ -241,34 +241,6 @@ def fig_finland_indicators(finland_data):
     return fig
 
 
-# ✅ Additional Finland visual (simple, executive-friendly)
-def fig_finland_happiness_gdp(finland_data):
-    fig, ax = plt.subplots(figsize=(6.5, 4.5))
-
-    ax.plot(
-        finland_data["year"],
-        finland_data["happiness_score"],
-        marker="o",
-        color="navy",
-        label="Happiness Score"
-    )
-    ax.plot(
-        finland_data["year"],
-        finland_data["gdp_per_capita"],
-        marker="o",
-        color="green",
-        label="GDP per Capita"
-    )
-
-    ax.set_title("Finland: Happiness vs GDP (2015–2019)")
-    ax.set_xlabel("Year")
-    ax.grid(True, alpha=0.3)
-    ax.legend()
-
-    fig.tight_layout()
-    return fig
-
-
 # ----------------------------
 # 3) STREAMLIT UI
 # ----------------------------
@@ -343,3 +315,4 @@ with tab4:
         file_name="world_happiness_filtered.csv",
         mime="text/csv"
     )
+
