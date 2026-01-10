@@ -1,4 +1,4 @@
-# World Happiness Report Analysis (2015–2019) 📊🌍
+# World Happiness Report Analysis (2015-2019) 📊🌍
 
 This notebook presents a complete exploratory and analytical workflow using **World Happiness Report–style data from 2015 to 2019**. The analysis focuses on understanding **global and regional happiness patterns**, identifying **key determinants of happiness**, and generating **policy-relevant insights**.
 
